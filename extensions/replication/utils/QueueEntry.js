@@ -1,11 +1,10 @@
 'use strict'; // eslint-disable-line
 
-const VersionIDUtils = require('arsenal').versioning.VersionID;
-
+const ObjectMD = require('arsenal').models.ObjectMD;
 const VID_SEP = require('arsenal').versioning.VersioningConstants
           .VersionId.Separator;
 
-class QueueEntry {
+class QueueEntry extends ObjectMD {
 
     /**
      * @constructor
@@ -14,13 +13,16 @@ class QueueEntry {
      *   status)
      * @param {string} objectKey - entry's object key without version
      *   suffix
-     * @param {object} objMd - entry's object metadata as a parsed JS
-     *   object
+     * @param {ObjectMD} objMd - entry's object metadata
      */
     constructor(bucket, objectKey, objMd) {
+        super(objMd);
         this.bucket = bucket;
         this.objectKey = objectKey;
-        this.objMd = objMd;
+    }
+
+    clone() {
+        return new QueueEntry(this.bucket, this.objectKey, this);
     }
 
     checkSanity() {
@@ -29,23 +31,6 @@ class QueueEntry {
         }
         if (typeof this.objectKey !== 'string') {
             return { message: 'missing object key' };
-        }
-        if (typeof this.objMd.replicationInfo !== 'object' ||
-            typeof this.objMd.replicationInfo.destination !== 'string') {
-            return { message: 'malformed source metadata: ' +
-                     'missing destination info' };
-        }
-        if (typeof this.objMd.versionId !== 'string') {
-            return { message: 'malformed source metadata: ' +
-                     'bad or missing versionId' };
-        }
-        if (typeof this.objMd['content-length'] !== 'number') {
-            return { message: 'malformed source metadata: ' +
-                     'bad or missing content-length' };
-        }
-        if (typeof this.objMd['content-md5'] !== 'string') {
-            return { message: 'malformed source metadata: ' +
-                     'bad or missing content-md5' };
         }
         return undefined;
     }
@@ -73,57 +58,17 @@ class QueueEntry {
         }
     }
 
-    isDeleteMarker() {
-        return this.objMd.isDeleteMarker;
-    }
-
     getBucket() {
         return this.bucket;
     }
 
+    setBucket(bucket) {
+        this.bucket = bucket;
+        return this;
+    }
+
     getObjectKey() {
         return this.objectKey;
-    }
-
-    getVersionId() {
-        return this.objMd.versionId;
-    }
-
-    getEncodedVersionId() {
-        return VersionIDUtils.encode(this.getVersionId());
-    }
-
-    getMetadataBlob() {
-        return JSON.stringify(this.objMd);
-    }
-
-    getContentLength() {
-        return this.objMd['content-length'];
-    }
-
-    getContentMD5() {
-        return this.objMd['content-md5'];
-    }
-
-    getReplicationStatus() {
-        return this.objMd.replicationInfo.status;
-    }
-
-    getReplicationContent() {
-        return this.objMd.replicationInfo.content;
-    }
-
-    getReplicationRoles() {
-        return this.objMd.replicationInfo.role;
-    }
-
-    getReplicationDestBucket() {
-        const destBucketArn = this.objMd.replicationInfo.destination;
-        return destBucketArn.split(':').slice(-1)[0];
-    }
-
-    getOwnerCanonicalId() {
-        return this.objMd['owner-id'];
     }
 
     getLogInfo() {
@@ -131,64 +76,27 @@ class QueueEntry {
             bucket: this.getBucket(),
             objectKey: this.getObjectKey(),
             versionId: this.getVersionId(),
-            isDeleteMarker: this.isDeleteMarker(),
+            isDeleteMarker: this.getIsDeleteMarker(),
         };
     }
 
-    getLocation() {
-        const { location } = this.objMd;
-        return Array.isArray(location) ? location : [];
-    }
-
-    buildLocationKey(location, dataLocation) {
-        const { key, dataStoreName } = dataLocation;
-        return Object.assign({}, location, { key, dataStoreName });
-    }
-
-    getDataStoreETag(location) {
-        return location.dataStoreETag;
-    }
-
-    getPartNumber(location) {
-        return Number.parseInt(location.dataStoreETag.split(':')[0], 10);
-    }
-
-    getPartETag(location) {
-        return location.dataStoreETag.split(':')[1];
-    }
-
-    getPartSize(location) {
-        return location.size;
-    }
-
-    setOwner(ownerCanonicalId, ownerDisplayName) {
-        this.objMd['owner-id'] = ownerCanonicalId;
-        this.objMd['owner-display-name'] = ownerDisplayName;
-    }
-
-    setLocation(location) {
-        this.objMd.location = location;
-    }
-
-    _convertEntry(bucket, repStatus) {
-        const replicationInfo = Object.assign({}, this.objMd.replicationInfo);
-        const replicaMd = Object.assign({}, this.objMd);
-        replicaMd.replicationInfo = replicationInfo;
-        replicaMd.replicationInfo.status = repStatus;
-        return new QueueEntry(bucket, this.objectKey, replicaMd);
-    }
-
     toReplicaEntry() {
-        const destBucket = this.getReplicationDestBucket();
-        return this._convertEntry(destBucket, 'REPLICA');
+        const newEntry = this.clone();
+        newEntry.setBucket(this.getReplicationTargetBucket());
+        newEntry.setReplicationStatus('REPLICA');
+        return newEntry;
     }
 
     toCompletedEntry() {
-        return this._convertEntry(this.getBucket(), 'COMPLETED');
+        const newEntry = this.clone();
+        newEntry.setReplicationStatus('COMPLETED');
+        return newEntry;
     }
 
     toFailedEntry() {
-        return this._convertEntry(this.getBucket(), 'FAILED');
+        const newEntry = this.clone();
+        newEntry.setReplicationStatus('FAILED');
+        return newEntry;
     }
 }
 

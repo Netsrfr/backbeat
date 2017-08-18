@@ -32,13 +32,14 @@ describe('QueueProcessor._getLocations helper method', () => {
                 dataStoreETag: '2:9ca655158ca025aa00a818b6b81f9e48',
             },
         ];
-        entry.objMd.location = locations;
-        assert.deepStrictEqual(queueProcessor._getLocations(entry), locations);
+        entry.setLocation(locations);
+        assert.deepStrictEqual(queueProcessor._getLocations(entry),
+                               locations);
     });
 
     it('should reduce an array when first part is > 1 element', () => {
         const entry = QueueEntry.createFromKafkaEntry(kafkaEntry);
-        entry.objMd.location = [
+        entry.setLocation([
             {
                 key: 'd1d1e055b19eb5a61adb8a665e626ff589cff233',
                 size: 1,
@@ -60,7 +61,7 @@ describe('QueueProcessor._getLocations helper method', () => {
                 dataStoreName: 'file',
                 dataStoreETag: '2:9ca655158ca025aa00a818b6b81f9e48',
             },
-        ];
+        ]);
         assert.deepStrictEqual(queueProcessor._getLocations(entry),
             [
                 {
@@ -82,7 +83,7 @@ describe('QueueProcessor._getLocations helper method', () => {
 
     it('should reduce an array when second part is > 1 element', () => {
         const entry = QueueEntry.createFromKafkaEntry(kafkaEntry);
-        entry.objMd.location = [
+        entry.setLocation([
             {
                 key: 'd1d1e055b19eb5a61adb8a665e626ff589cff233',
                 size: 1,
@@ -104,7 +105,7 @@ describe('QueueProcessor._getLocations helper method', () => {
                 dataStoreName: 'file',
                 dataStoreETag: '2:9ca655158ca025aa00a818b6b81f9e48',
             },
-        ];
+        ]);
         assert.deepStrictEqual(queueProcessor._getLocations(entry),
             [
                 {
@@ -126,7 +127,7 @@ describe('QueueProcessor._getLocations helper method', () => {
 
     it('should reduce an array when multiple parts are > 1 element', () => {
         const entry = QueueEntry.createFromKafkaEntry(kafkaEntry);
-        entry.objMd.location = [
+        entry.setLocation([
             {
                 key: 'd1d1e055b19eb5a61adb8a665e626ff589cff233',
                 size: 1,
@@ -155,7 +156,7 @@ describe('QueueProcessor._getLocations helper method', () => {
                 dataStoreName: 'file',
                 dataStoreETag: '2:9ca655158ca025aa00a818b6b81f9e48',
             },
-        ];
+        ]);
         assert.deepStrictEqual(queueProcessor._getLocations(entry),
             [
                 {
