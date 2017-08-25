@@ -188,7 +188,7 @@ Default output format [None]:
 Set up replication on your buckets:
 
 ```
-node ~/replication/backbeat/bin/setupReplication.js setup \
+node ~/replication/backbeat/bin/replication.js setup \
 --source-bucket source-bucket \
 --source-profile backbeatuser \
 --target-bucket target-bucket \
@@ -247,6 +247,55 @@ aws s3api head-object \
 
 After some time, the object's "ReplicationStatus" should be "REPLICA".
 :smiley_cat:
+
+### More on Bucket Setup Script
+
+An optional bucket setup script is provided to quickly get 2 buckets configured
+and ready for replication. This section will expand upon the details of the
+script and what it has to offer.
+
+As a note, this script was used above to setup replication on buckets. The
+example commands provided in this section **will assume you run them from the
+root directory** of this Backbeat project.
+
+To use this script, we require you to have setup one or two AWS profiles within
+the `~/.aws/credentials` file. You can follow the  [AWS create-access-key Guide](https://aws.amazon.com/premiumsupport/knowledge-center/create-access-key/)
+to create your own AWS keys. If our Vault service is available to you, we
+recommend you generate these keys from their respective server endpoints.
+
+Here is an example of two profiles I created and added to `~/.aws/credentials`:
+```
+[backbeat-source]
+aws_access_key_id = V28ROGMVX4C5R80TP5P3
+aws_secret_access_key = zwksPAYyx1uwyGK/ezCpPi8tS4H3NYTZrslYZeAx
+
+[backbeat-target]
+aws_access_key_id = RPHPFTBTF77MNIDF1JJ9
+aws_secret_access_key = rjTqIFBvNALJz=qgipmW/uU+I2BjU=o+WDcuOI22
+```
+
+Once credentials are setup, let's run the script to setup 2 buckets for
+replication. Below, you can specify any valid AWS bucket name for `source-bucket`
+and `destination-bucket`, and specify the profile names you set above:
+```
+node bin/replication.js setup \
+--source-bucket source-bucket \
+--source-profile backbeat-source \
+--target-bucket target-bucket \
+--target-profile backbeat-target
+```
+
+If all went well, you should see a log message that has the message:
+`"replication setup successful"`.
+
+The script has other available commands as well:
+```
+# To view all commands
+node bin/replication.js --help
+
+# To view the options for specific commands, for example `setup`
+node bin/replication.js setup --help
+```
 
 ### Structure
 
