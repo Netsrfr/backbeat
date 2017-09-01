@@ -249,8 +249,8 @@ class LogReader {
             entry.key !== undefined && entry.value !== undefined &&
             ! isMasterKey(entry.key)) {
             const value = JSON.parse(entry.value);
-            if (value.replicationInfo &&
-                value.replicationInfo.status === 'PENDING') {
+            // if (value.replicationInfo &&
+            //     value.replicationInfo.status === 'PENDING') {
                 this.log.trace('queueing entry', { entry });
                 const queueEntry = {
                     type: entry.type,
@@ -262,7 +262,7 @@ class LogReader {
                     key: encodeURIComponent(entry.key),
                     message: JSON.stringify(queueEntry),
                 };
-            }
+            // }
         }
         return null;
     }
