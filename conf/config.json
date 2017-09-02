@@ -1,6 +1,6 @@
 {
     "zookeeper": {
-        "connectionString": "127.0.0.1:2181/backbeat"
+        "connectionString": "127.0.0.1:2181/postproc"
     },
     "kafka": {
         "hosts": "127.0.0.1:9092"
@@ -47,14 +47,14 @@
                     "account": "lisa"
                 }
             },
-            "topic": "backbeat-replication",
+            "topic": "post-processing",
             "queuePopulator": {
                 "cronRule": "*/5 * * * * *",
                 "batchMaxRead": 10000,
-                "zookeeperPath": "/replication-populator"
+                "zookeeperPath": "/processing-populator"
             },
             "queueProcessor": {
-                "groupId": "backbeat-replication-group",
+                "groupId": "post-processing-group",
                 "retryTimeoutS": 300
             }
         }
