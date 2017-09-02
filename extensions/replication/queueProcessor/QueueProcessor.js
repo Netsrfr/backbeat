@@ -653,146 +653,147 @@ class QueueProcessor {
     _processQueueEntry(sourceEntry, log, done) {
         const destEntry = sourceEntry.toReplicaEntry();
 
-        log.debug('processing entry',
+        //TODO: Return to log.debug
+        log.info('processing entry',
                   { entry: sourceEntry.getLogInfo() });
 
 
-        if (sourceEntry.isDeleteMarker()) {
-            return async.waterfall([
-                next => {
-                    this._setupRoles(sourceEntry, log, next);
-                },
-                (sourceRole, targetRole, next) => {
-                    this._setTargetAccountMd(destEntry, targetRole, log,
-                                             next);
-                },
-                // put metadata in target bucket
-                next => {
-                    // TODO check that bucket role matches role in metadata
-                    this._putMetadata('target', destEntry, false, log, next);
-                },
-            ], err => this._handleReplicationOutcome(err, sourceEntry,
-                                                     destEntry, log, done));
-        }
+        // if (sourceEntry.isDeleteMarker()) {
+        //     return async.waterfall([
+        //         next => {
+        //             this._setupRoles(sourceEntry, log, next);
+        //         },
+        //         (sourceRole, targetRole, next) => {
+        //             this._setTargetAccountMd(destEntry, targetRole, log,
+        //                                      next);
+        //         },
+        //         // put metadata in target bucket
+        //         next => {
+        //             // TODO check that bucket role matches role in metadata
+        //             this._putMetadata('target', destEntry, false, log, next);
+        //         },
+        //     ], err => this._handleReplicationOutcome(err, sourceEntry,
+        //                                              destEntry, log, done));
+        // }
 
-        const mdOnly = !sourceEntry.getReplicationContent().includes('DATA');
-        return async.waterfall([
-            // get data stream from source bucket
-            next => {
-                this._setupRoles(sourceEntry, log, next);
-            },
-            (sourceRole, targetRole, next) => {
-                this._setTargetAccountMd(destEntry, targetRole, log, next);
-            },
-            // Get data from source bucket and put it on the target bucket
-            next => {
-                if (!mdOnly) {
-                    return this._getAndPutData(sourceEntry, destEntry, log,
-                        next);
-                }
-                return next(null, []);
-            },
-            // update location, replication status and put metadata in
-            // target bucket
-            (location, next) => {
-                destEntry.setLocation(location);
-                this._putMetadata('target', destEntry, mdOnly, log, next);
-            },
-        ], err => this._handleReplicationOutcome(err, sourceEntry, destEntry,
-                                                 log, done));
-    }
+    //     const mdOnly = !sourceEntry.getReplicationContent().includes('DATA');
+    //     return async.waterfall([
+    //         // get data stream from source bucket
+    //         next => {
+    //             this._setupRoles(sourceEntry, log, next);
+    //         },
+    //         (sourceRole, targetRole, next) => {
+    //             this._setTargetAccountMd(destEntry, targetRole, log, next);
+    //         },
+    //         // Get data from source bucket and put it on the target bucket
+    //         next => {
+    //             if (!mdOnly) {
+    //                 return this._getAndPutData(sourceEntry, destEntry, log,
+    //                     next);
+    //             }
+    //             return next(null, []);
+    //         },
+    //         // update location, replication status and put metadata in
+    //         // target bucket
+    //         (location, next) => {
+    //             destEntry.setLocation(location);
+    //             this._putMetadata('target', destEntry, mdOnly, log, next);
+    //         },
+    //     ], err => this._handleReplicationOutcome(err, sourceEntry, destEntry,
+    //                                              log, done));
+    // }
 
-    _processQueueEntryRetryFull(sourceEntry, destEntry, log, done) {
-        log.debug('reprocessing entry as full replication',
-                  { entry: sourceEntry.getLogInfo() });
+    // _processQueueEntryRetryFull(sourceEntry, destEntry, log, done) {
+    //     log.debug('reprocessing entry as full replication',
+    //               { entry: sourceEntry.getLogInfo() });
+    //
+    //     return async.waterfall([
+    //         next => this._getAndPutData(sourceEntry, destEntry, log, next),
+    //         // update location, replication status and put metadata in
+    //         // target bucket
+    //         (location, next) => {
+    //             destEntry.setLocation(location);
+    //             this._putMetadata('target', destEntry, false, log, next);
+    //         },
+    //     ], err => this._handleReplicationOutcome(err, sourceEntry, destEntry,
+    //                                              log, done));
+    // }
 
-        return async.waterfall([
-            next => this._getAndPutData(sourceEntry, destEntry, log, next),
-            // update location, replication status and put metadata in
-            // target bucket
-            (location, next) => {
-                destEntry.setLocation(location);
-                this._putMetadata('target', destEntry, false, log, next);
-            },
-        ], err => this._handleReplicationOutcome(err, sourceEntry, destEntry,
-                                                 log, done));
-    }
+    // _handleReplicationOutcome(err, sourceEntry, destEntry, log, done) {
+    //     if (!err) {
+    //         log.debug('replication succeeded for object, updating ' +
+    //                   'source replication status to COMPLETED',
+    //                   { entry: sourceEntry.getLogInfo() });
+    //         return this._updateReplicationStatus(
+    //             sourceEntry.toCompletedEntry(), { log }, done);
+    //     }
+    //     if (err.BadRole ||
+    //         (err.origin === 'source' &&
+    //          (err.NoSuchEntity || err.code === 'NoSuchEntity' ||
+    //           err.AccessDenied || err.code === 'AccessDenied'))) {
+    //         log.error('replication failed permanently for object, ' +
+    //                   'processing skipped',
+    //                   { failMethod: err.method,
+    //                     entry: sourceEntry.getLogInfo(),
+    //                     origin: err.origin,
+    //                     error: err.description });
+    //         return done();
+    //     }
+    //     if (err.ObjNotFound || err.code === 'ObjNotFound') {
+    //         if (err.origin === 'source') {
+    //             log.info('replication skipped: ' +
+    //                      'source object version does not exist',
+    //                      { entry: sourceEntry.getLogInfo() });
+    //             return done();
+    //         }
+    //         log.info('target object version does not exist, retrying ' +
+    //                  'a full replication',
+    //                  { entry: sourceEntry.getLogInfo() });
+    //         return this._processQueueEntryRetryFull(sourceEntry, destEntry,
+    //                                                 log, done);
+    //     }
+    //     log.debug('replication failed permanently for object, ' +
+    //               'updating replication status to FAILED',
+    //               { failMethod: err.method,
+    //                 entry: sourceEntry.getLogInfo(),
+    //                 error: err.description });
+    //     return this._updateReplicationStatus(
+    //         sourceEntry.toFailedEntry(),
+    //         { log, reason: err.description }, done);
+    // }
 
-    _handleReplicationOutcome(err, sourceEntry, destEntry, log, done) {
-        if (!err) {
-            log.debug('replication succeeded for object, updating ' +
-                      'source replication status to COMPLETED',
-                      { entry: sourceEntry.getLogInfo() });
-            return this._updateReplicationStatus(
-                sourceEntry.toCompletedEntry(), { log }, done);
-        }
-        if (err.BadRole ||
-            (err.origin === 'source' &&
-             (err.NoSuchEntity || err.code === 'NoSuchEntity' ||
-              err.AccessDenied || err.code === 'AccessDenied'))) {
-            log.error('replication failed permanently for object, ' +
-                      'processing skipped',
-                      { failMethod: err.method,
-                        entry: sourceEntry.getLogInfo(),
-                        origin: err.origin,
-                        error: err.description });
-            return done();
-        }
-        if (err.ObjNotFound || err.code === 'ObjNotFound') {
-            if (err.origin === 'source') {
-                log.info('replication skipped: ' +
-                         'source object version does not exist',
-                         { entry: sourceEntry.getLogInfo() });
-                return done();
-            }
-            log.info('target object version does not exist, retrying ' +
-                     'a full replication',
-                     { entry: sourceEntry.getLogInfo() });
-            return this._processQueueEntryRetryFull(sourceEntry, destEntry,
-                                                    log, done);
-        }
-        log.debug('replication failed permanently for object, ' +
-                  'updating replication status to FAILED',
-                  { failMethod: err.method,
-                    entry: sourceEntry.getLogInfo(),
-                    error: err.description });
-        return this._updateReplicationStatus(
-            sourceEntry.toFailedEntry(),
-            { log, reason: err.description }, done);
-    }
-
-    _updateReplicationStatusOnce(updatedSourceEntry, params, done) {
-        const { log, reason } = params;
-
-        const _doneUpdate = err => {
-            if (err) {
-                log.error('an error occurred when writing replication ' +
-                          'status',
-                          { entry: updatedSourceEntry.getLogInfo(),
-                            origin: 'source',
-                            peer: this.sourceConfig.s3,
-                            replicationStatus:
-                            updatedSourceEntry.getReplicationStatus() });
-                return done(err);
-            }
-            log.end().info('replication status updated',
-                           { entry: updatedSourceEntry.getLogInfo(),
-                             replicationStatus:
-                             updatedSourceEntry.getReplicationStatus(),
-                             reason });
-            return done();
-        };
-
-        if (this.backbeatSource !== null) {
-            return this._putMetadata(
-                'source', updatedSourceEntry, false, log, _doneUpdate);
-        }
-        log.end().info('replication status update skipped',
-                       { entry: updatedSourceEntry.getLogInfo(),
-                         replicationStatus:
-                         updatedSourceEntry.getReplicationStatus() });
-        return done();
-    }
+    // _updateReplicationStatusOnce(updatedSourceEntry, params, done) {
+    //     const { log, reason } = params;
+    //
+    //     const _doneUpdate = err => {
+    //         if (err) {
+    //             log.error('an error occurred when writing replication ' +
+    //                       'status',
+    //                       { entry: updatedSourceEntry.getLogInfo(),
+    //                         origin: 'source',
+    //                         peer: this.sourceConfig.s3,
+    //                         replicationStatus:
+    //                         updatedSourceEntry.getReplicationStatus() });
+    //             return done(err);
+    //         }
+    //         log.end().info('replication status updated',
+    //                        { entry: updatedSourceEntry.getLogInfo(),
+    //                          replicationStatus:
+    //                          updatedSourceEntry.getReplicationStatus(),
+    //                          reason });
+    //         return done();
+    //     };
+    //
+    //     if (this.backbeatSource !== null) {
+    //         return this._putMetadata(
+    //             'source', updatedSourceEntry, false, log, _doneUpdate);
+    //     }
+    //     log.end().info('replication status update skipped',
+    //                    { entry: updatedSourceEntry.getLogInfo(),
+    //                      replicationStatus:
+    //                      updatedSourceEntry.getReplicationStatus() });
+    //     return done();
+     }
 
     start() {
         const consumer = new BackbeatConsumer({
