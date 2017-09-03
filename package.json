@@ -6,6 +6,8 @@
   "scripts": {
     "queue_populator": "node extensions/replication/queuePopulator/task.js",
     "queue_processor": "node extensions/replication/queueProcessor/task.js",
+    "pp_populator:": "node extensions/post-processing/queuePopulator/task.js",
+    "pp_processor:": "node extensions/post-processing/queueProcessor/task.js",
     "test": "mocha --recursive tests/unit",
     "ft_test": "mocha --recursive tests/functional",
     "bh_test": "mocha --recursive tests/behavior",
