@@ -9,7 +9,7 @@ const repConfig = config.extensions.replication;
 const sourceConfig = config.extensions.replication.source;
 const QueuePopulator = require('./QueuePopulator');
 
-const log = new werelogs.Logger('Backbeat:Replication:task');
+const log = new werelogs.Logger('Backbeat:PostProcessing:task');
 
 werelogs.configure({ level: config.log.logLevel,
                      dump: config.log.dumpLevel });
@@ -17,7 +17,7 @@ werelogs.configure({ level: config.log.logLevel,
 /* eslint-disable no-param-reassign */
 function queueBatch(queuePopulator, batchInProgress) {
     if (batchInProgress) {
-        log.warn('skipping replication batch: previous one still in progress');
+        log.warn('skipping post processing batch: previous one still in progress');
         return undefined;
     }
     log.debug('start queueing replication batch');
@@ -26,7 +26,7 @@ function queueBatch(queuePopulator, batchInProgress) {
     queuePopulator.processAllLogEntries({ maxRead }, (err, counters) => {
         batchInProgress = false;
         if (err) {
-            log.error('an error occurred during replication', {
+            log.error('an error occurred during post processing', {
                 method: 'QueuePopulator::task.queueBatch',
                 error: err,
             });
@@ -34,7 +34,7 @@ function queueBatch(queuePopulator, batchInProgress) {
         }
         const logFunc = (counters.some(counter => counter.readRecords > 0) ?
             log.info : log.debug).bind(log);
-        logFunc('replication batch finished', { counters });
+        logFunc('post processing batch finished', { counters });
         return undefined;
     });
     return undefined;

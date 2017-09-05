@@ -39,7 +39,7 @@ class QueuePopulator {
         this.sourceConfig = sourceConfig;
         this.repConfig = repConfig;
 
-        this.log = new Logger('Backbeat:Replication:QueuePopulator');
+        this.log = new Logger('Backbeat:PostProcessingh:QueuePopulator');
 
         // list of active log readers
         this.logReaders = [];
